@@ -2,10 +2,11 @@ package game2048;
 
 import java.util.Formatter;
 import java.util.Observable;
-
+import java.util.LinkedList;
+import java.util.Iterator;
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author baoheng zhu
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -16,6 +17,8 @@ public class Model extends Observable {
     private int maxScore;
     /** True iff game is ended. */
     private boolean gameOver;
+
+    public int flag = 0;
 
     /* Coordinate System: column C, row R of the board (where row 0,
      * column 0 is the lower-left corner of the board) will correspond
@@ -109,17 +112,184 @@ public class Model extends Observable {
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
-
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
-
+        board.setViewingPerspective(side);
+        for (int c = 0; c < board.size(); c++) {
+            score += tileColumn(c);
+        }
         checkGameOver();
+        board.setViewingPerspective(Side.NORTH);
+        if (flag == 1) {
+            changed = true;
+        }
         if (changed) {
             setChanged();
         }
+
         return changed;
     }
+
+    public int  tileColumn(int c) {
+
+        if (nextTileEqual(c, tileLinkedList(c)) == 1) {
+            score = 0;
+            noMerge(c);
+        }
+        //与doubleDoubleMerge有bug
+        if (nextTileEqual(c ,tileLinkedList(c)) == 2 || nextTileEqual(c, tileLinkedList(c)) == 3
+                || nextTileEqual(c ,tileLinkedList(c)) == 4) {
+            score = basicMerge(c, mergePos(c ,tileLinkedList(c)));
+            flag = 1;
+        }
+
+        return score;
+
+    }
+
+
+
+    public int noMerge(int c) {
+        int bias = 0;
+        bias = getTopSpace(c, tileLinkedList(c));
+        if (bias == -1){
+            return 0;
+        }
+        for (int r = 3; r >= 0; r--){
+            Tile t = board.tile(c, r);
+            if (t != null){
+
+                for (int i = 3; i > r; i--){
+                    if (board.tile(c ,i) == null){
+                        board.move(c, i, t);
+                        flag = 1;
+                        break;
+                    }
+                }
+            }
+        }
+        return 0;
+
+    }
+
+    public int basicMerge(int c, int[] pos) {
+        int score = 0;
+        int targetPos = 0;
+        int bias = 0;
+        int bonus = 0;
+        int upperValue = 0;
+        int lowerValue = 0;
+
+        Tile t_lower = tile(c, pos[0]);
+        Tile t_upper = tile(c, pos[1]);
+        bias = getTopSpace(c, tileLinkedList(c));
+        if (bias == -1){
+            return 0;
+        }
+        targetPos = pos[1] + bias;
+        upperValue = t_upper.value();
+        lowerValue = t_lower.value();
+        board.move(c, targetPos, t_upper);
+        board.move(c, targetPos, t_lower);
+        //下方方块跟随
+        //下方第一个方块不为空
+        if (pos[0] - 1 >= 0) {
+            Tile t_other1 = tile(c, pos[0] - 1);
+
+            //下方第一个方块不为空的情况
+            if (t_other1 != null) {
+                board.move(c, targetPos - 1, t_other1);
+                if (pos[0] - 2 >= 0) {
+                    Tile t_other2 = tile(c, pos[0] - 2);
+                    if (t_other2 != null) {
+                        if(t_other1.value() == t_other2.value()){
+                            board.move(c, targetPos - 1, t_other2);
+                            bonus = t_other1.value() + t_other2.value();
+                        }else{
+                            board.move(c, targetPos - 2, t_other2);
+                        }
+                    }
+                }
+            }
+            //下方第一个方块为空
+            else{
+                if (pos[0] - 2 >= 0) {
+                    Tile t_other2 = tile(c, pos[0] - 2);
+                    if (t_other2 != null) {
+                        board.move(c, targetPos - 1, t_other2);
+                    }
+                }
+            }
+        }
+        score = upperValue + lowerValue + bonus;
+        return score;
+    }
+
+
+    //把非空的格子转换成链表
+    public LinkedList tileLinkedList(int c) {
+        LinkedList index = new LinkedList<>();
+
+        for (int r = 3; r >= 0; r--) {
+            if (board.tile(c, r) != null) {
+                index.add(r);
+            }
+        }
+        return index;
+    }
+
+    //查询连续相同的格子的数量
+    public int nextTileEqual(int c, LinkedList index) {
+        int maxDup = 1;
+        int curDup = 1;
+        for (int i = 1; i < index.size(); i++) {
+            Tile t1 = board.tile(c, (int)index.get(i));
+            Tile t2 = board.tile(c, (int)index.get(i - 1));
+
+            if (t1.value() == t2.value()){
+                curDup++;
+                maxDup = Math.max(curDup, maxDup);
+            }else{
+                curDup = 1;
+            }
+        }
+        return maxDup;
+    }
+
+    //获取要合并的两个方块的位置
+
+    public int[] mergePos(int c, LinkedList index) {
+        int i = 1;
+        int[] pos = new int[]{0, 0};
+
+        while(i < index.size()) {
+            Tile t1 = board.tile(c, (int)index.get(i));
+            Tile t2 = board.tile(c, (int)index.get(i - 1));
+
+            if (t1.value() == t2.value()) {
+                pos[0] = (int)index.get(i);  //下面的数字的位置
+                pos[1] = (int)index.get(i - 1);  //上面的数字的位置
+                break;
+            }
+
+            i += 1;
+        }
+        return pos;
+    }
+
+    //获取顶部的空格子个数
+    // 即pos[1]上面null的数量
+    public int getTopSpace(int c, LinkedList index) {
+        int pos[] = new int[2];
+        int cnt = 0;
+        pos = mergePos(c, index);
+        for (int i = pos[1] + 1; i < board.size(); i++) {
+            Tile t = board.tile(c, i);
+            if (t == null) {
+                cnt += 1;
+            }
+        }
+        return cnt;
+    }
+
 
     /** Checks if the game is over and sets the gameOver variable
      *  appropriately.
@@ -137,9 +307,18 @@ public class Model extends Observable {
      *  Empty spaces are stored as null.
      * */
     public static boolean emptySpaceExists(Board b) {
-        // TODO: Fill in this function.
-        return false;
+        boolean emptySpace = false;
+        for (int c = 0; c < b.size(); c++) {
+            for (int r = 0; r < b.size(); r++) {
+                if (b.tile(c, r) == null){
+                    emptySpace = true;
+                }
+            }
+        }
+        return emptySpace;
     }
+
+
 
     /**
      * Returns true if any tile is equal to the maximum valid value.
@@ -147,7 +326,16 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
-        // TODO: Fill in this function.
+        for (int c = 0; c < b.size(); c++) {
+            for (int r = 0; r < b.size(); r++) {
+                if (b.tile(c, r) != null) {
+                    Tile t = b.tile(c, r);
+                    if (t.value() == MAX_PIECE) {
+                        return true;
+                    }
+                }
+            }
+        }
         return false;
     }
 
@@ -158,7 +346,39 @@ public class Model extends Observable {
      * 2. There are two adjacent tiles with the same value.
      */
     public static boolean atLeastOneMoveExists(Board b) {
-        // TODO: Fill in this function.
+        return emptySpaceExists(b) || adjTileEqual(b);
+    }
+
+    public static boolean tileIndexValid(int c, int r) {
+        return c >= 0 && c < 4 && r >= 0 && r < 4;
+    }
+
+    public static boolean testAdjTileEqual(Board b, int c, int r, int targetC, int targetR){
+        if (tileIndexValid(targetC, targetR)) {
+            Tile adjTile = b.tile(targetC, targetR);
+            Tile t = b.tile(c ,r);
+            return adjTile.value() == t.value();
+        }
+        return false;
+    }
+
+    public static boolean fourAdjTileEqual(Board b, int c, int r) {
+        return testAdjTileEqual(b, c, r, c + 1, r)
+                || testAdjTileEqual(b, c, r,c - 1, r)
+                || testAdjTileEqual(b, c, r, c, r + 1)
+                || testAdjTileEqual(b, c, r, c, r - 1);
+    }
+
+
+    public static boolean adjTileEqual(Board b) {
+
+        for (int c = 0; c < b.size(); c++) {
+            for (int r = 0; r < b.size(); r++) {
+                if (fourAdjTileEqual(b, c, r)) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
