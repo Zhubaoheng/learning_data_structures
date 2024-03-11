@@ -51,7 +51,7 @@ public class TimeSLList {
 
             Stopwatch sw = new Stopwatch();
             for (int k = 0; k < M; k++){
-                target.addLast(1);
+                target.getLast();
             }
             double timeInSeconds = sw.elapsedTime();
             times.addLast(timeInSeconds);
