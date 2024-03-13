@@ -34,14 +34,14 @@ public class ArrayDeque<T> implements Deque<T> {
 
     private int checkLowerBound(int i) {
         if (i < 0) {
-            return capacity - 1;
+            return i + capacity ;
         }
         return i;
     }
 
     private int checkUpperBound(int i) {
         if (i > capacity - 1) {
-            return 0;
+            return i - capacity;
         }
         return i;
     }
@@ -102,6 +102,9 @@ public class ArrayDeque<T> implements Deque<T> {
 
     @Override
     public T get(int index) {
+        if (index > vaildSize - 1) {
+            return null;
+        }
         return items[checkUpperBound(nextFirst + 1 + index)];
     }
 

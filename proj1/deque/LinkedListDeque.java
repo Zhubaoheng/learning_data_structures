@@ -1,7 +1,5 @@
 package deque;
 
-import afu.org.checkerframework.checker.oigj.qual.O;
-
 public class LinkedListDeque<T> implements Deque<T>{
 
     private class Node<T> {

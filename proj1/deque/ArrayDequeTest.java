@@ -176,6 +176,8 @@ public class ArrayDequeTest {
         lld1.addLast("l");
         lld1.addLast("m");
         lld1.addLast("n");
+        System.out.println(lld1.get(1) + " " + lld1.get(2) + " " + lld1.get(3));
+
         lld1.addFirst("o");
         lld1.addFirst("p");
         lld1.removeFirst();
