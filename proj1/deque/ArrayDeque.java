@@ -140,7 +140,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     private void resizeSmaller(int c) {
         T[] a = (T[]) new Object[c];
         if (ifOnePart()) {
-            System.arraycopy(items, nextFirst + 1, a, 0, vaildSize);
+            System.arraycopy(items, checkUpperBound(nextFirst + 1), a, 0, vaildSize);
             nextFirst = c - 1;
             nextLast = vaildSize;
         } else if (ifTwoParts()) {
