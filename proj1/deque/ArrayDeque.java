@@ -1,6 +1,7 @@
 package deque;
-
-public class ArrayDeque<T> implements Deque<T> {
+import java.util.Iterator;
+public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
+    //列表中含有多少有效元素
     private int vaildSize = 0;
     public int capacity = 8;
     private T[] items;
@@ -46,10 +47,6 @@ public class ArrayDeque<T> implements Deque<T> {
         return i;
     }
 
-    @Override
-    public boolean isEmpty() {
-        return vaildSize == 0;
-    }
 
     @Override
     public int size() {
@@ -58,9 +55,9 @@ public class ArrayDeque<T> implements Deque<T> {
 
     @Override
     public void printDeque() {
-        int printNum = nextFirst - 1;
+        int printNum = nextFirst + 1;
         for (int i = 0; i < vaildSize; i++) {
-            System.out.println(printNum);
+            System.out.println(items[printNum]);
             printNum = checkUpperBound(printNum + 1);
         }
         System.out.println();
@@ -158,4 +155,38 @@ public class ArrayDeque<T> implements Deque<T> {
 
     }
 
+    public Iterator<T> iterator() {
+        return new ArrayDequeIterator();
+    }
+
+    private class ArrayDequeIterator implements Iterator<T> {
+        int wizPos = checkUpperBound(nextFirst + 1);
+        int cnt = 0;
+        public boolean hasNext() {
+            return cnt < vaildSize;
+        }
+        public T next() {
+            T returnItem = items[wizPos];
+            wizPos += 1;
+            wizPos = checkUpperBound(wizPos);
+            cnt += 1;
+            return returnItem;
+        }
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Deque)) {
+            return false;
+        }
+        ArrayDeque<T> others = (ArrayDeque<T>) o;
+        if (others.size() != this.size()) {
+            return false;
+        }
+        for (int i = 0; i < this.size(); i++) {
+            if (!others.get(i).equals(this.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

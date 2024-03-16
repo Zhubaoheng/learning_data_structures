@@ -1,6 +1,7 @@
 package deque;
 
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 
@@ -125,7 +126,69 @@ public class LinkedListDequeTest {
         for (double i = 999999; i > 500000; i--) {
             assertEquals("Should have the same value", i, (double) lld1.removeLast(), 0.0);
         }
+    }
+    @Test
+    public void testEquals() {
+        LinkedListDeque<String> lld1 = new LinkedListDeque<String>();
+        LinkedListDeque<String> lld2 = new LinkedListDeque<String>();
+        int[] lld3 = new int[5];
+        lld1.addLast("a");
+        lld1.addLast("b");
+        lld1.addLast("c");
+        lld2.addLast("a");
+        lld2.addLast("b");
+        //lld2.addLast("c");
+
+        System.out.println(lld1.equals(lld2));
+    }
+
+    @Test
+    public void testIterator() {
+        LinkedListDeque<String> lld1 = new LinkedListDeque<String>();
+        lld1.addLast("a");
+        lld1.addLast("b");
+        lld1.addLast("c");
+        lld1.addLast("d");
+        lld1.addLast("e");
+
+
+        lld1.addLast("f");
+        lld1.addLast("g");
+        for (String i : lld1) {
+            System.out.println(i);
+        }
+        lld1.addLast("h");
+        lld1.addLast("i");
+        lld1.addLast("j");
+        lld1.removeFirst();
+        lld1.removeFirst();
+        lld1.removeLast();
+        lld1.removeLast();
+
+    }
+
+    @Test
+    public void testGet() {
+
+        LinkedListDeque<String> lld1 = new LinkedListDeque<String>();
+
+
+        lld1.addLast("a");
+        lld1.addLast("b");
+        lld1.addLast("c");
+        lld1.addLast("d");
+        lld1.addLast("e");
+        lld1.addLast("f");
+        lld1.addLast("g");
+
+        assertEquals("a", lld1.get(0));
+        assertEquals("b", lld1.getRecursive(1));
+        assertEquals("c", lld1.get(2));
+        assertEquals("d", lld1.getRecursive(3));
+        assertEquals("e", lld1.get(4));
 
 
     }
+
 }
+

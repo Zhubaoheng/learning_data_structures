@@ -1,6 +1,8 @@
 package deque;
 
 import org.junit.Test;
+
+
 import static org.junit.Assert.*;
 
 
@@ -80,8 +82,8 @@ public class ArrayDequeTest {
     public void multipleParamTest() {
 
 
-        ArrayDeque<String>  lld1 = new ArrayDeque<String>();
-        ArrayDeque<Double>  lld2 = new ArrayDeque<Double>();
+        ArrayDeque<String> lld1 = new ArrayDeque<String>();
+        ArrayDeque<Double> lld2 = new ArrayDeque<Double>();
         ArrayDeque<Boolean> lld3 = new ArrayDeque<Boolean>();
 
         lld1.addFirst("string");
@@ -222,6 +224,7 @@ public class ArrayDequeTest {
 
 
     }
+
     @Test
     public void testTwoSmaller() {
         ArrayDeque<String> lld1 = new ArrayDeque<String>();
@@ -249,9 +252,49 @@ public class ArrayDequeTest {
         lld1.removeLast();
         lld1.removeFirst();
         lld1.addLast("i");
+    }
 
+    @Test
+    public void testIterator() {
+        ArrayDeque<String> lld1 = new ArrayDeque<String>();
+        lld1.addLast("a");
+        lld1.addLast("b");
+        lld1.addLast("c");
+        lld1.addLast("d");
+        lld1.addLast("e");
+
+
+        lld1.addLast("f");
+        lld1.addLast("g");
+
+        lld1.addLast("h");
+        lld1.addLast("i");
+        lld1.addLast("j");
+        lld1.removeFirst();
+        lld1.removeFirst();
+        lld1.removeLast();
+        lld1.removeLast();
+        for (String i : lld1) {
+            System.out.println(i);
+        }
+    }
+
+    @Test
+    public void testEquals() {
+        ArrayDeque<String> lld1 = new ArrayDeque<String>();
+        ArrayDeque<String> lld2 = new ArrayDeque<String>();
+        int[] lld3 = new int[5];
+        lld1.addLast("a");
+        lld1.addLast("b");
+        lld1.addLast("c");
+        lld2.addLast("a");
+        lld2.addLast("b");
+        //lld2.addLast("c");
+
+        System.out.println(lld1.equals(lld3));
     }
 }
+
 
 
 
