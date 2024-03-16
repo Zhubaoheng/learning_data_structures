@@ -3,7 +3,7 @@ import java.util.Iterator;
 public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     //列表中含有多少有效元素
     private int vaildSize = 0;
-    public int capacity = 8;
+    private int capacity = 8;
     private T[] items;
     private int nextFirst = 4;
     private int nextLast = 5;
@@ -35,7 +35,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     private int checkLowerBound(int i) {
         if (i < 0) {
-            return i + capacity ;
+            return i + capacity;
         }
         return i;
     }
@@ -83,7 +83,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     @Override
     public T removeLast() {
         if (checkResizeSmaller()) {
-            resizeSmaller(capacity / 2 );
+            resizeSmaller(capacity / 2);
         }
 
         if (vaildSize == 0) {
@@ -117,18 +117,19 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
         return ((double) vaildSize / capacity <= 0.25) && capacity >= 16;
     }
 
-    public void resizeBigger(int c) {
+    private void resizeBigger(int c) {
         T[] a = (T[]) new Object[c];
         if (ifOnePart()) {
-            System.arraycopy(items, checkUpperBound(nextFirst + 1), a, checkUpperBound(nextFirst + 1), vaildSize);
+            System.arraycopy(items, checkUpperBound(nextFirst + 1), a,
+                    checkUpperBound(nextFirst + 1), vaildSize);
             nextLast = vaildSize;
             nextFirst = c - 1;
-        }
-        else if (ifTwoParts()) {
+        } else if (ifTwoParts()) {
             //复制前半部分
             System.arraycopy(items, 0, a, 0, nextLast);
             //复制后半部分
-            System.arraycopy(items, nextFirst + 1, a, c - (vaildSize - nextLast) , vaildSize - nextLast);
+            System.arraycopy(items, nextFirst + 1, a,
+                    c - (vaildSize - nextLast), vaildSize - nextLast);
             nextFirst = c - (vaildSize - nextLast) - 1;
         }
         capacity = c;
@@ -136,18 +137,18 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     }
 
-    public void resizeSmaller(int c) {
+    private void resizeSmaller(int c) {
         T[] a = (T[]) new Object[c];
         if (ifOnePart()) {
             System.arraycopy(items, nextFirst + 1, a, 0, vaildSize);
             nextFirst = c - 1;
             nextLast = vaildSize;
-        }
-        else if (ifTwoParts()){
+        } else if (ifTwoParts()) {
             //复制前半部分
             System.arraycopy(items, 0, a, 0, nextLast);
             //复制后半部分
-            System.arraycopy(items, nextFirst + 1, a, c - (vaildSize - nextLast), vaildSize - nextLast);
+            System.arraycopy(items, nextFirst + 1, a,
+                    c - (vaildSize - nextLast), vaildSize - nextLast);
             nextFirst = c - (vaildSize - nextLast) - 1;
         }
         capacity = c;
@@ -175,7 +176,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     }
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Deque)) {
+        if (!(o instanceof ArrayDeque)) {
             return false;
         }
         ArrayDeque<T> others = (ArrayDeque<T>) o;

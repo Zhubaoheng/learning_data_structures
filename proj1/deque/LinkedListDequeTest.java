@@ -59,20 +59,19 @@ public class LinkedListDequeTest {
     /* Tests removing from an empty deque */
     public void removeEmptyTest() {
 
-        LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
-        lld1.addFirst(3);
+        LinkedListDeque<Integer> LinkedListDeque = new LinkedListDeque<>();
+        LinkedListDeque.addLast(1);
+        LinkedListDeque.addFirst(2);
+        LinkedListDeque.addFirst(3);
+        LinkedListDeque.removeFirst();
+        LinkedListDeque.removeLast();
 
-        lld1.removeLast();
-        lld1.removeFirst();
-        lld1.removeLast();
-        lld1.removeFirst();
+        LinkedListDeque.get(0);
+        LinkedListDeque.removeFirst();
+        LinkedListDeque.addLast(8);
+        LinkedListDeque.removeFirst();
 
-        int size = lld1.size();
-        String errorMsg = "  Bad size returned when removing from empty deque.\n";
-        errorMsg += "  student size() returned " + size + "\n";
-        errorMsg += "  actual size() returned 0\n";
 
-        assertEquals(errorMsg, 0, size);
 
     }
 

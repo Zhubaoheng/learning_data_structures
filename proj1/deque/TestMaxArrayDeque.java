@@ -4,10 +4,7 @@ import org.junit.Test;
 
 import java.util.Comparator;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-
-public class testMaxArrayDeque {
+public class TestMaxArrayDeque {
     private class NameComparator implements Comparator<String> {
         public int compare(String s1, String s2) {
             return s1.compareTo(s2);
