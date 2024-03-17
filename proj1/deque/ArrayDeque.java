@@ -33,6 +33,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
         vaildSize += 1;
     }
 
+    // Test git name
     private int checkLowerBound(int i) {
         if (i < 0) {
             return i + capacity;
