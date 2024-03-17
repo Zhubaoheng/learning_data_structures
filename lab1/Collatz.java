@@ -7,7 +7,7 @@ public class Collatz {
      *   If n is odd, the next number is 3n + 1
      *   If n is 1, the sequence is over.
       */
-   // test github merge
+   // test github merge 2
     public static int nextNumber(int n) {
         if (n  == 1) {
             return 1;
