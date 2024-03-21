@@ -3,7 +3,7 @@ package bstmap;
 import java.util.Iterator;
 import java.util.Set;
 
-public class BSTMap<K extends Comparable, V> implements Map61B<K, V> {
+public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
     private class BSTNode<K extends Comparable, V> {
         private V value;
@@ -50,7 +50,7 @@ public class BSTMap<K extends Comparable, V> implements Map61B<K, V> {
         }
         if (sk.equals(node.key)) {
             return node;
-        } else if (sk.compareTo(node.key) < 0) {
+        } else if (sk.compareTo((K) node.key) < 0) {
             return get(node.left, sk);
         } else {
             return get(node.right, sk);
@@ -79,9 +79,9 @@ public class BSTMap<K extends Comparable, V> implements Map61B<K, V> {
         if (node == null) {
             return new BSTNode<K, V>(key, value);
         }
-        if (key.compareTo(node.key) < 0) {
+        if (key.compareTo((K) node.key) < 0) {
             node.left = put(node.left, key, value);
-        }else if (key.compareTo(node.key) > 0) {
+        }else if (key.compareTo((K) node.key) > 0) {
             node.right = put(node.right, key, value);
         }
         return node;
