@@ -97,7 +97,7 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
     public void printInOrder() {
         inOrder(root);
     }
-    public void inOrder(BSTNode node) {
+    private void inOrder(BSTNode node) {
         if (node == null) {
             return;
         }
