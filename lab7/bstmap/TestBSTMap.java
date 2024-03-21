@@ -86,5 +86,15 @@ public class TestBSTMap {
         b.put("hi", null);
         assertTrue(b.containsKey("hi"));
     }
+    @Test
+    public void testRemoveRoot() {
+        BSTMap<String, String> q = new BSTMap<String, String>();
+        q.put("a", "1");
+        q.put("b", "2");
+        q.put("c", "3");
+        q.put("d", "4");
+        q.put("e", "5"); // a b c d e
+        q.printInOrder();
+      }
 
 }
