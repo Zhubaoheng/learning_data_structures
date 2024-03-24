@@ -110,12 +110,29 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
 
     @Override
     public V remove(K key) {
-        throw new UnsupportedOperationException();
+        int hashCode = getHashCode(key);
+        if (buckets[hashCode] == null) {
+            return null;
+        }
+        for (int i = 0; i < M ; i++) {
+            if (buckets[i] != null) {
+                for (Node node : buckets[i]){
+                    if (node.key.equals(key)) {
+                        V returnValue = node.value;
+                        keyset.remove(node.key);
+                        buckets[i].remove(node);
+                        N -= 1;
+                        return returnValue;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     @Override
     public V remove(K key, V value) {
-        throw new UnsupportedOperationException();
+        return remove(key);
     }
 
     @Override
@@ -127,6 +144,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
     public void clear() {
         Collection<Node>[] clear = createTable(M);
         buckets = clear;
+        keyset.clear();
         N = 0;
     }
 
@@ -158,8 +176,8 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
         if (factor > loadFactor) {
             resize();
         }
-        add(buckets, key, value);
         N += 1;
+        add(buckets, key, value);
         keyset.add(key);
     }
 
