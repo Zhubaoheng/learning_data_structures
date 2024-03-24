@@ -1,0 +1,13 @@
+
+Enter # strings to insert into hashmap.MyHashMap: #
+Please enter a positive integer: 1000000
+class hashmap.MyHashMap: 0.65 sec
+
+Enter # strings to insert into Java's HashMap: #
+Please enter a positive integer: 1000000
+Java's Built-in HashMap: 0.39 sec
+
+
+Enter # strings to insert into hashmap.ULLMap: #
+Please enter a positive integer: 1000000
+--Stack Overflow -- couldn't add 1000000 strings.
