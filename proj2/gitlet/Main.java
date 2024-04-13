@@ -15,8 +15,6 @@ public class Main {
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
     public static final File CWD = new File(System.getProperty("user.dir"));
-    public static final File REPO = join(CWD, ".gitlet", "REPO");
-
     public static void main(String[] args) {
         if (args == null) {
             throw error("Please enter a command.");
@@ -24,13 +22,7 @@ public class Main {
 
         // TODO: what if args is empty?
         String firstArg = args[0];
-        Repository repo;
-
-        if (!REPO.exists()) {
-            repo = new Repository();
-        }else {
-            repo = readObject(REPO, Repository.class);
-        }
+        Repository repo = new Repository();
         switch(firstArg) {
             case "init":
                 repo.init();
@@ -61,7 +53,6 @@ public class Main {
                 break;
 
             case "rm-branch":
-                System.out.println("get-in");
                 repo.rmBranch(args[1]);
                 break;
 
@@ -98,6 +89,5 @@ public class Main {
                 break;
 
         }
-        writeObject(REPO, repo);
     }
 }

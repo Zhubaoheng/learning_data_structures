@@ -37,7 +37,7 @@ public class Repository implements Serializable {
 
     public void init() {
         if (GITLET_DIR.exists()) {
-            throw error("Please enter a command.");
+            exitWithMessage("Please enter a command.");
         }
         setupRepoFile();
 
@@ -62,7 +62,7 @@ public class Repository implements Serializable {
         String itemHash;
         File fileForAdd = join(CWD, fileName);
         if (!fileForAdd.exists()) {
-            throw error("File does not exist.");
+            exitWithMessage("File does not exist.");
         }
 
         Blob newBlob = new Blob(readContents(fileForAdd));
@@ -71,52 +71,53 @@ public class Repository implements Serializable {
         Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
         assert curCommit != null;
         HashMap<String, String> blobMap = curCommit.getBlobMap();
-        StagingArea stage_area = StagingArea.load();
+        StagingArea stageArea = StagingArea.load();
+        if (!stageArea.getAddition().isEmpty()) {
+            stageArea.getAddition().remove(fileName);
+        }
+        if (!stageArea.getRemoval().isEmpty()) {
+            stageArea.getRemoval().remove(fileName);
+        }
+
         if (blobMap.get(fileName) != null && blobMap.get(fileName).equals(itemHash)) {
-            stage_area.save();
+            stageArea.save();
             return;
         }
-        if (stage_area.getAddition() != null) {
-            stage_area.getAddition().remove(fileName);
-        }
-        if (stage_area.getRemoval() != null) {
-            stage_area.getRemoval().remove(fileName);
-        }
-        stage_area.getAddition().put(fileName, itemHash);
-        stage_area.save();
+        stageArea.getAddition().put(fileName, itemHash);
+        stageArea.save();
         newBlob.save();
     }
 
     public void commit(String message) {
-        StagingArea stage_area = StagingArea.load();
-        if (stage_area.getRemoval().isEmpty() && stage_area.getAddition().isEmpty()) {
-            throw error("No changes added to the commit.");
+        StagingArea stageArea = StagingArea.load();
+        if (stageArea.getRemoval().isEmpty() && stageArea.getAddition().isEmpty()) {
+            exitWithMessage("No changes added to the commit.");
         }
         if (message == null) {
-            throw error("Please enter a commit message.");
+            exitWithMessage("Please enter a commit message.");
         }
         // if no merge
         Commit newCommit = new Commit(Branch.getBranches(HEAD.getHead()), null, message);
         // 检查Staged for addition 和 Staged for removal
 
-        newCommit.getBlobMap().putAll(stage_area.getAddition());
-        for (String key : stage_area.getRemoval()) {
+        newCommit.getBlobMap().putAll(stageArea.getAddition());
+        for (String key : stageArea.getRemoval()) {
             newCommit.getBlobMap().remove(key);
         }
-        stage_area.clear();
+        stageArea.clear();
         newCommit.save();
-        stage_area.save();
+        stageArea.save();
         Branch.setBranches(HEAD.getHead(), newCommit.getHash());
-        //TODO:有merge情况未考虑
+        //有merge情况未考虑
     }
 
 
     /**如果暂存区中存在这个文件，把它从暂存区中移除*/
     public void rm(String fileName) {
-        StagingArea stage_area = StagingArea.load();
+        StagingArea stageArea = StagingArea.load();
         boolean changed = false;
-        if (stage_area.getAddition().containsKey(fileName)) {
-            stage_area.getAddition().remove(fileName);
+        if (stageArea.getAddition().containsKey(fileName)) {
+            stageArea.getAddition().remove(fileName);
             changed = true;
         }
 
@@ -124,12 +125,12 @@ public class Repository implements Serializable {
         assert curCommit != null;
         if (curCommit.getBlobMap().containsKey(fileName)) {
             join(CWD, fileName).delete();
-            stage_area.getRemoval().add(fileName);
+            stageArea.getRemoval().add(fileName);
             changed = true;
         }
-        stage_area.save();
+        stageArea.save();
         if (!changed) {
-            throw error("No reason to remove the file.");
+            exitWithMessage("No reason to remove the file.");
         }
     }
 
@@ -174,7 +175,7 @@ public class Repository implements Serializable {
             }
         }
         if (!changed) {
-            throw error("Found no commit with that message.");
+            exitWithMessage("Found no commit with that message.");
         }
     }
 
@@ -182,42 +183,42 @@ public class Repository implements Serializable {
     public void branch(String branchName) {
         File newBranch = join(Branch.BRANCHES, branchName);
         if (newBranch.exists()) {
-            throw error("A branch with that name already exists.");
+            exitWithMessage("A branch with that name already exists.");
         }
         Branch.setBranches(branchName, Branch.getBranches(HEAD.getHead()));
     }
 
     public void rmBranch(String branchName) {
         if (HEAD.getHead().equals(branchName)) {
-            throw error("Cannot remove the current branch.");
+            exitWithMessage("Cannot remove the current branch.");
         }
         List<String> branches = plainFilenamesIn(Branch.BRANCHES);
         if (!branches.contains(branchName)) {
-            throw error("A branch with that name does not exist. ");
+            exitWithMessage("A branch with that name does not exist. ");
         }
-        restrictedDelete(join(Branch.BRANCHES, branchName));
+        join(Branch.BRANCHES, branchName).delete();
     }
 
     public void status() {
-        StagingArea stage_area = StagingArea.load();
+        StagingArea stageArea = StagingArea.load();
         Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
         List<String> cwd = plainFilenamesIn(CWD);
         System.out.println("===" + " " + "Branches" + " " + "===");
         printBranches();
 
         System.out.println("===" + " " + "Staged Files" + " " + "===");
-        printStagedFiles(stage_area);
+        printStagedFiles(stageArea);
 
         System.out.println("===" + " " + "Removed Files" + " " + "===");
-        printRemovedFiles(stage_area);
+        printRemovedFiles(stageArea);
 
         System.out.println("===" + " " + "Modifications Not Staged For Commit" + " " + "===");
 
-        printModifyNotStage(stage_area, curCommit, cwd);
+        printModifyNotStage(stageArea, curCommit, cwd);
 
 
         System.out.println("===" + " " + "Untracked Files" + " " + "===");
-        printUntrackedFiles(stage_area, curCommit, cwd);
+        printUntrackedFiles(stageArea, curCommit, cwd);
     }
     private void printBranches() {
         List<String> branches = plainFilenamesIn(Branch.BRANCHES);
@@ -232,8 +233,8 @@ public class Repository implements Serializable {
         System.out.println();
     }
 
-    private void printStagedFiles(StagingArea stage_area) {
-        HashMap<String, String> addition = stage_area.getAddition();
+    private void printStagedFiles(StagingArea stageArea) {
+        HashMap<String, String> addition = stageArea.getAddition();
         TreeSet<String> additionTree = new TreeSet<>(addition.keySet());
         for (String s : additionTree) {
             System.out.println(s);
@@ -241,8 +242,8 @@ public class Repository implements Serializable {
         System.out.println();
     }
 
-    private void printRemovedFiles(StagingArea stage_area) {
-        HashSet<String> removal = stage_area.getRemoval();
+    private void printRemovedFiles(StagingArea stageArea) {
+        HashSet<String> removal = stageArea.getRemoval();
         TreeSet<String> removalTree = new TreeSet<>(removal);
         for (String s : removalTree) {
             System.out.println(s);
@@ -250,12 +251,12 @@ public class Repository implements Serializable {
         System.out.println();
     }
 
-    private void printModifyNotStage(StagingArea stage_area, Commit curCommit, List<String> cwd) {
+    private void printModifyNotStage(StagingArea stageArea, Commit curCommit, List<String> cwd) {
         HashMap<String, String> blobMap = curCommit.getBlobMap();
         TreeSet<String> modified = new TreeSet<>();
         TreeSet<String> deleted = new TreeSet<>();
-        HashSet<String> removal = stage_area.getRemoval();
-        HashMap<String, String> addition = stage_area.getAddition();
+        HashSet<String> removal = stageArea.getRemoval();
+        HashMap<String, String> addition = stageArea.getAddition();
 
         for (String fileName : addition.keySet()) {
             if (!cwd.contains(fileName)) {
@@ -302,13 +303,13 @@ public class Repository implements Serializable {
         System.out.println();
     }
 
-    private void printUntrackedFiles(StagingArea stage_area, Commit curCommit, List<String> cwd) {
+    private void printUntrackedFiles(StagingArea stageArea, Commit curCommit, List<String> cwd) {
         if (cwd == null) {
             return;
         }
         HashMap<String, String> blobMap = curCommit.getBlobMap();
-        HashSet<String> removal = stage_area.getRemoval();
-        HashMap<String, String> addition = stage_area.getAddition();
+        HashSet<String> removal = stageArea.getRemoval();
+        HashMap<String, String> addition = stageArea.getAddition();
         TreeSet<String> untrackedFiles = new TreeSet<>();
 
         for (String fileName : cwd) {
@@ -329,37 +330,37 @@ public class Repository implements Serializable {
     }
 
     public void checkout2(String commitId, String fileName) {
-        //TODO:缩写要能处理
+        //缩写要能处理
         File commit = join(Commit.COMMITS, commitId);
         if (commit.exists()) {
             Commit thisCommit = readObject(commit, Commit.class);
             HashMap<String, String> commitMap = thisCommit.getBlobMap();
 
             if (!commitMap.containsKey("wug.txt")) {
-                throw error("File does not exist in that commit.");
+                exitWithMessage("File does not exist in that commit.");
             }
             String fileHash = commitMap.get(fileName);
             File file = join(Blob.BLOBS, fileHash);
             writeContents(join(CWD, fileName), (Object) readContents(file));
         } else {
-            throw error("No commit with that id exists.");
+            exitWithMessage("No commit with that id exists.");
         }
     }
     public void checkout3(String branchName) {
         List<String> branches = plainFilenamesIn(Branch.BRANCHES);
         if (!branches.contains(branchName)) {
-            throw error("No such branch exists.");
+            exitWithMessage("No such branch exists.");
         }
         if (branchName.equals(HEAD.getHead())) {
-            throw error("No need to checkout the current branch. ");
+            exitWithMessage("No need to checkout the current branch. ");
         }
         resetFile(Branch.getBranches(branchName));
         HEAD.setHead(branchName);
     }
 
-    private void resetFile(String Uid) {
+    private void resetFile(String uid) {
         Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
-        Commit commit = Commit.load(Uid);
+        Commit commit = Commit.load(uid);
         HashMap<String, String> commitMap = commit.getBlobMap();
         HashMap<String, String> curCommitMap = curCommit.getBlobMap();
         List<String> cwd = plainFilenamesIn(CWD);
@@ -367,11 +368,14 @@ public class Repository implements Serializable {
         //遍历以前commit的文件
         for (Map.Entry<String, String> entry : commitMap.entrySet()) {
             //现在commit不包括这个文件
-            if (!curCommitMap.keySet().contains(entry.getKey())) {
+            if (!curCommitMap.containsKey(entry.getKey())) {
                 if (cwd.contains(entry.getKey())) { //如果它在工作目录中，抛出错误信息
-                    error("There is an untracked file in the way;" +
-                            " delete it, or add and commit it first.");
+                    exitWithMessage("There is an untracked file in the way;"
+                            + " delete it, or add and commit it first.");
                 }
+                writeContents(join(CWD, entry.getKey()),
+                        (Object) readContents(join(Blob.BLOBS,
+                                entry.getValue())));
             } else { //现在依然有这个文件
                 //覆写现在的文件
                 writeContents(join(CWD, entry.getKey()),
@@ -390,26 +394,26 @@ public class Repository implements Serializable {
         }
     }
 
-    public void reset(String Uid) {
-        Commit commit = Commit.load(Uid);
+    public void reset(String uid) {
+        Commit commit = Commit.load(uid);
         if (commit == null) {
-            throw error("No commit with that id exists.");
+            exitWithMessage("No commit with that id exists.");
         }
-        if (!inCurBranch(Uid)) {
-            throw error("There is an untracked file in the way; " +
-                    "delete it, or add and commit it first.");
+        if (!inCurBranch(uid)) {
+            exitWithMessage("There is an untracked file in the way; "
+                   + "delete it, or add and commit it first.");
         }
-        StagingArea stage_area = StagingArea.load();
-        stage_area.clear();
-        stage_area.save();
-        resetFile(Uid);
-        Branch.setBranches(HEAD.getHead(), Uid);
+        StagingArea stageArea = StagingArea.load();
+        stageArea.clear();
+        stageArea.save();
+        resetFile(uid);
+        Branch.setBranches(HEAD.getHead(), uid);
     }
 
-    private boolean inCurBranch(String Uid) {
+    private boolean inCurBranch(String uid) {
         Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
         while (curCommit.getParent() != null) {
-            if (curCommit.getHash().equals(Uid)) {
+            if (curCommit.getHash().equals(uid)) {
                 return true;
             } else {
                 curCommit = Commit.load(curCommit.getParent());
@@ -417,7 +421,13 @@ public class Repository implements Serializable {
         }
         return false;
     }
+    public void merge(String branchName) {
+        
+    }
 
-    public void merge(String branchName) {}
+    private void exitWithMessage(String message) {
+        System.out.println(message);
+        exit(0);
+    }
 
 }

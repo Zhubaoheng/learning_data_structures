@@ -3,28 +3,22 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 
-// TODO: any imports you need here
 
-import java.util.Date; // TODO: You'll likely use this in this class
-import java.util.List;
+import java.util.Date;
 import java.util.Locale;
 
 import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author Baoheng Zhu
  */
 public class Commit implements Serializable {
     /**
-     * TODO: add instance variables here.
-     *
      * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
-     *
      * 一个commit中要包括
      * 文件名到blob的映射 父commit的uid  对于合并来说 还应该保存另一个父commit的uid
      * metadata: timestamp  log message
@@ -102,11 +96,11 @@ public class Commit implements Serializable {
         return mergeParent;
     }
 
-    public static Commit load(String Uid) {
-        File target = join(COMMITS, Uid);
+    public static Commit load(String uid) {
+        File target = join(COMMITS, uid);
         if (target.exists()) {
             return readObject(target, Commit.class);
-        }else {
+        } else {
             return null;
         }
     }
