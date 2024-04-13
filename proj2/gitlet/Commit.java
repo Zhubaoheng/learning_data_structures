@@ -115,15 +115,13 @@ public class Commit implements Serializable {
         System.out.println("===");
         System.out.println("commit" + " " + hash);
         if (mergeParent != null) {
-            System.out.println("Merge:"
-                    + " "
-                    + parent.substring(0, 7)
-                    + " "
-                    + mergeParent.substring(0, 7));
+            System.out.println("Merge:" + " " + parent.substring(0, 7)
+                    + " " + mergeParent.substring(0, 7));
         }
         System.out.println("Date:" + " " + dateFormat.format(timeStamp));
         System.out.println(message);
         System.out.println();
     }
+
 
 }

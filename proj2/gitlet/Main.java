@@ -46,31 +46,56 @@ public class Main {
 
             case "rm":
                 repo.rm(args[1]);
+                break;
 
             case "log":
                 repo.log();
+                break;
 
             case "global-log":
                 repo.globalLog();
+                break;
 
             case "find":
                 repo.find(args[1]);
+                break;
+
+            case "rm-branch":
+                System.out.println("get-in");
+                repo.rmBranch(args[1]);
+                break;
 
             case "branch":
                 repo.branch(args[1]);
+                break;
+
+            case "status":
+                repo.status();
+                break;
 
             case "checkout":
                 if (args.length == 2) {
                     repo.checkout3(args[1]);
+                    break;
                 }
 
                 if (args.length == 3) {
                     repo.checkout1(args[2]);
+                    break;
                 }
 
                 if (args.length == 4) {
                     repo.checkout2(args[1], args[3]);
+                    break;
                 }
+
+            case "reset":
+                repo.reset(args[1]);
+                break;
+
+            case "merge":
+                repo.merge(args[1]);
+                break;
 
         }
         writeObject(REPO, repo);

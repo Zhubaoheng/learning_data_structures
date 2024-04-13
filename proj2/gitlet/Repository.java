@@ -7,10 +7,7 @@ import static java.lang.System.exit;
 import java.io.Serializable;
 import java.util.*;
 
-// TODO: any imports you need here
-
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author Baoheng Zhu
@@ -128,6 +125,7 @@ public class Repository implements Serializable {
         if (curCommit.getBlobMap().containsKey(fileName)) {
             join(CWD, fileName).delete();
             stage_area.getRemoval().add(fileName);
+            changed = true;
         }
         stage_area.save();
         if (!changed) {
@@ -170,7 +168,7 @@ public class Repository implements Serializable {
         }
         for (String hash : commitList) {
             Commit commit = readObject(join(Commit.COMMITS, hash), Commit.class);
-            while (commit.getMessage().equals(message)) {
+            if (commit.getMessage().equals(message)) {
                 System.out.println(hash);
                 changed = true;
             }
@@ -189,11 +187,149 @@ public class Repository implements Serializable {
         Branch.setBranches(branchName, Branch.getBranches(HEAD.getHead()));
     }
 
+    public void rmBranch(String branchName) {
+        if (HEAD.getHead().equals(branchName)) {
+            throw error("Cannot remove the current branch.");
+        }
+        List<String> branches = plainFilenamesIn(Branch.BRANCHES);
+        if (!branches.contains(branchName)) {
+            throw error("A branch with that name does not exist. ");
+        }
+        restrictedDelete(join(Branch.BRANCHES, branchName));
+    }
+
+    public void status() {
+        StagingArea stage_area = StagingArea.load();
+        Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
+        List<String> cwd = plainFilenamesIn(CWD);
+        System.out.println("===" + " " + "Branches" + " " + "===");
+        printBranches();
+
+        System.out.println("===" + " " + "Staged Files" + " " + "===");
+        printStagedFiles(stage_area);
+
+        System.out.println("===" + " " + "Removed Files" + " " + "===");
+        printRemovedFiles(stage_area);
+
+        System.out.println("===" + " " + "Modifications Not Staged For Commit" + " " + "===");
+
+        printModifyNotStage(stage_area, curCommit, cwd);
+
+
+        System.out.println("===" + " " + "Untracked Files" + " " + "===");
+        printUntrackedFiles(stage_area, curCommit, cwd);
+    }
+    private void printBranches() {
+        List<String> branches = plainFilenamesIn(Branch.BRANCHES);
+        System.out.println("*" + HEAD.getHead());
+        Collections.sort(branches);
+        for (String branch : branches) {
+            if (branch.equals(HEAD.getHead())) {
+                continue;
+            }
+            System.out.println(branch);
+        }
+        System.out.println();
+    }
+
+    private void printStagedFiles(StagingArea stage_area) {
+        HashMap<String, String> addition = stage_area.getAddition();
+        TreeSet<String> additionTree = new TreeSet<>(addition.keySet());
+        for (String s : additionTree) {
+            System.out.println(s);
+        }
+        System.out.println();
+    }
+
+    private void printRemovedFiles(StagingArea stage_area) {
+        HashSet<String> removal = stage_area.getRemoval();
+        TreeSet<String> removalTree = new TreeSet<>(removal);
+        for (String s : removalTree) {
+            System.out.println(s);
+        }
+        System.out.println();
+    }
+
+    private void printModifyNotStage(StagingArea stage_area, Commit curCommit, List<String> cwd) {
+        HashMap<String, String> blobMap = curCommit.getBlobMap();
+        TreeSet<String> modified = new TreeSet<>();
+        TreeSet<String> deleted = new TreeSet<>();
+        HashSet<String> removal = stage_area.getRemoval();
+        HashMap<String, String> addition = stage_area.getAddition();
+
+        for (String fileName : addition.keySet()) {
+            if (!cwd.contains(fileName)) {
+                deleted.add(fileName);
+            }
+        }
+
+        for (String fileName : blobMap.keySet()) {
+            if (!removal.contains(fileName) && !cwd.contains(fileName)) {
+                deleted.add(fileName);
+            }
+        }
+
+        for (String s : deleted) {
+            System.out.println(s + " " + "(deleted)");
+        }
+
+        if (cwd == null) {
+            return;
+        }
+
+        for (String fileName : cwd) {
+            String cwdFileHash = sha1((Object) readContents(join(CWD, fileName)));
+            String curCommitHash = blobMap.get(fileName);
+            String additionHash = addition.get(fileName);
+            if (curCommitHash != null) {
+                //commit和cwd不一样
+                if (!curCommitHash.equals(cwdFileHash)) {
+                    modified.add(fileName);
+                }
+            }
+
+            if (additionHash != null) {
+                //addition和cwd不一样
+                if (!additionHash.equals(cwdFileHash)) {
+                    modified.add(fileName);
+                }
+            }
+        }
+
+        for (String s : modified) {
+            System.out.println(s + " " +  "(modified)");
+        }
+        System.out.println();
+    }
+
+    private void printUntrackedFiles(StagingArea stage_area, Commit curCommit, List<String> cwd) {
+        if (cwd == null) {
+            return;
+        }
+        HashMap<String, String> blobMap = curCommit.getBlobMap();
+        HashSet<String> removal = stage_area.getRemoval();
+        HashMap<String, String> addition = stage_area.getAddition();
+        TreeSet<String> untrackedFiles = new TreeSet<>();
+
+        for (String fileName : cwd) {
+            if (!removal.contains(fileName) && !addition.containsKey(fileName)
+                    && !blobMap.containsKey(fileName)) {
+                untrackedFiles.add(fileName);
+            }
+        }
+
+        for (String s : untrackedFiles) {
+            System.out.println(s);
+        }
+        System.out.println();
+    }
+
     public void checkout1(String fileName) {
         checkout2(Branch.getBranches(HEAD.getHead()), fileName);
     }
 
     public void checkout2(String commitId, String fileName) {
+        //TODO:缩写要能处理
         File commit = join(Commit.COMMITS, commitId);
         if (commit.exists()) {
             Commit thisCommit = readObject(commit, Commit.class);
@@ -217,9 +353,13 @@ public class Repository implements Serializable {
         if (branchName.equals(HEAD.getHead())) {
             throw error("No need to checkout the current branch. ");
         }
+        resetFile(Branch.getBranches(branchName));
+        HEAD.setHead(branchName);
+    }
 
+    private void resetFile(String Uid) {
         Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
-        Commit commit = Commit.load(Branch.getBranches(branchName));
+        Commit commit = Commit.load(Uid);
         HashMap<String, String> commitMap = commit.getBlobMap();
         HashMap<String, String> curCommitMap = curCommit.getBlobMap();
         List<String> cwd = plainFilenamesIn(CWD);
@@ -248,12 +388,36 @@ public class Repository implements Serializable {
                 }
             }
         }
-        HEAD.setHead(branchName);
     }
 
+    public void reset(String Uid) {
+        Commit commit = Commit.load(Uid);
+        if (commit == null) {
+            throw error("No commit with that id exists.");
+        }
+        if (!inCurBranch(Uid)) {
+            throw error("There is an untracked file in the way; " +
+                    "delete it, or add and commit it first.");
+        }
+        StagingArea stage_area = StagingArea.load();
+        stage_area.clear();
+        stage_area.save();
+        resetFile(Uid);
+        Branch.setBranches(HEAD.getHead(), Uid);
+    }
 
+    private boolean inCurBranch(String Uid) {
+        Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
+        while (curCommit.getParent() != null) {
+            if (curCommit.getHash().equals(Uid)) {
+                return true;
+            } else {
+                curCommit = Commit.load(curCommit.getParent());
+            }
+        }
+        return false;
+    }
 
+    public void merge(String branchName) {}
 
-
-    /* TODO: fill in the rest of this class. */
 }
