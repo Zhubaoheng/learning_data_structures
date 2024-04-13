@@ -77,7 +77,9 @@ public class Commit implements Serializable {
     }
 
     public void save() {
-        writeObject(join(COMMITS, hash), this);
+        File folder = join(COMMITS, hash.substring(0, 6));
+        folder.mkdir();
+        writeObject(join(folder, hash), this);
     }
 
     public HashMap<String, String> getBlobMap() {
@@ -97,7 +99,12 @@ public class Commit implements Serializable {
     }
 
     public static Commit load(String uid) {
-        File target = join(COMMITS, uid);
+        File folder = join(COMMITS, uid);
+        if (uid.length() == 40) {
+            folder = join(COMMITS, uid.substring(0, 6));
+
+        }
+        File target = join(folder, uid);
         if (target.exists()) {
             return readObject(target, Commit.class);
         } else {

@@ -331,11 +331,9 @@ public class Repository implements Serializable {
 
     public void checkout2(String commitId, String fileName) {
         //缩写要能处理
-        File commit = join(Commit.COMMITS, commitId);
-        if (commit.exists()) {
-            Commit thisCommit = readObject(commit, Commit.class);
-            HashMap<String, String> commitMap = thisCommit.getBlobMap();
-
+        Commit commit = Commit.load(commitId);
+        if (commit != null) {
+            HashMap<String, String> commitMap = commit.getBlobMap();
             if (!commitMap.containsKey("wug.txt")) {
                 exitWithMessage("File does not exist in that commit.");
             }
