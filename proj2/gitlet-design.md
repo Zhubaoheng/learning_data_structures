@@ -75,4 +75,30 @@ removal -- Hashset 存储要删除的文件名
 
 ## Persistence
 
-文件结构
+merge方法： 
+
+找分支点（split point）
+- 如果分支点与given分支指向的commit相同，则打印信息，退出
+- 如果分支点和当前branch分支指向的commit相同，则checkout到given的分支，打印信息，退出
+
+在split point后，
+1. 如果一个文件在given被modified，但是current没有，这些都应该被更新到given的版本（checkout）
+2. 与2相反，如果一个文件在current被modified,但是given没有，那就维持在current的版本
+3. 如果一个文件在两个分支中都被modified，并且更改后的内容也完全相同，同样维持不变。如果在两个分支中都删除了这个文件，但是在cwd中依然
+存在，就让他存在，保持untracked的状态
+4. 如果split point中没有的文件，其中current分支独有，那就继续保留它
+5. 如果split point中没有的文件，其中given分支独有，那就checkout出来
+6. 如果split point中的文件，在current分支没动，但是在given分支中不见了
+，那就给它删除
+7. 如果split point中的文件，在given分支没动，但是在current分支中不见了
+，那就保持丢失的状态不动
+8. 冲突：
+- 在given分支和current分支都更改且更改方式不同
+- 在其中一个分支被更改而另一个分支中被删除
+- 在split point中不存在的文件，在given分支和current分支中有不同的内容
+
+错误情况：
+- staging area不为空
+- given branch不存在
+- given branch与current branch相同
+- 有untracked file

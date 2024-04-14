@@ -195,6 +195,9 @@ public class Repository implements Serializable {
             exitWithMessage("A branch with that name already exists.");
         }
         Branch.setBranches(branchName, Branch.getBranches(HEAD.getHead()));
+        Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
+        curCommit.setSpBranch(branchName);
+        curCommit.save();
     }
 
     public void rmBranch(String branchName) {
@@ -229,7 +232,7 @@ public class Repository implements Serializable {
 
 
         System.out.println("===" + " " + "Untracked Files" + " " + "===");
-        printUntrackedFiles(stageArea, curCommit, cwd);
+        printUntrackedFiles(findUntrackedFiles(stageArea, curCommit, cwd));
     }
     private void printBranches() {
         List<String> branches = plainFilenamesIn(Branch.BRANCHES);
@@ -314,22 +317,24 @@ public class Repository implements Serializable {
         System.out.println();
     }
 
-    private void printUntrackedFiles(StagingArea stageArea, Commit curCommit, List<String> cwd) {
-        if (cwd == null) {
-            return;
-        }
+    private TreeSet<String> findUntrackedFiles(StagingArea stageArea, Commit curCommit, List<String> cwd) {
         HashMap<String, String> blobMap = curCommit.getBlobMap();
         HashSet<String> removal = stageArea.getRemoval();
         HashMap<String, String> addition = stageArea.getAddition();
         TreeSet<String> untrackedFiles = new TreeSet<>();
-
+        if (cwd == null) {
+            return untrackedFiles;
+        }
         for (String fileName : cwd) {
             if (!removal.contains(fileName) && !addition.containsKey(fileName)
                     && !blobMap.containsKey(fileName)) {
                 untrackedFiles.add(fileName);
             }
         }
+        return untrackedFiles;
+    }
 
+    private void printUntrackedFiles(TreeSet<String> untrackedFiles) {
         for (String s : untrackedFiles) {
             System.out.println(s);
         }
@@ -423,6 +428,161 @@ public class Repository implements Serializable {
 
     public void merge(String branchName) {
         checkGitletDir();
+        Commit curBranch = Commit.load(Branch.getBranches(HEAD.getHead()));
+        List<String> cwd = plainFilenamesIn(CWD);
+        StagingArea stageArea = StagingArea.load();
+        TreeSet<String> untrackedFile = findUntrackedFiles(stageArea, curBranch, cwd);
+        List<String> branches = plainFilenamesIn(Branch.BRANCHES);
+        Set<String> fileNames = new TreeSet<>();
+        if (!branches.contains(branchName)) {
+            exitWithMessage("A branch with that name does not exist. ");
+        }
+        if (HEAD.getHead().equals(branchName)) {
+            exitWithMessage("Cannot merge a branch with itself.");
+        }
+        if (!stageArea.getAddition().isEmpty() || !stageArea.getRemoval().isEmpty()) {
+            exitWithMessage("You have uncommitted changes.");
+        }
+        if (!untrackedFile.isEmpty()) {
+            exitWithMessage("There is an untracked file in the way;"
+                   + " delete it, or add and commit it first.");
+        }
+        // find the split point
+
+        Commit spPoint = findSplitPoint();
+        Commit givenBranch = Commit.load(Branch.getBranches(branchName));
+
+        if (spPoint.getHash().equals(givenBranch.getHash())) {
+            exitWithMessage("Given branch is an ancestor of the current branch.");
+        }
+        if (spPoint.getHash().equals(curBranch.getHash())) {
+            checkout3(branchName);
+            exitWithMessage("Current branch fast-forwarded.");
+        }
+        Commit mergeCommit = new Commit(Branch.getBranches(HEAD.getHead()),
+                givenBranch.getHash(), "Merged " + branchName + " into "
+                + HEAD.getHead() + ".", HEAD.getHead());
+        HashMap<String, String> spMap = spPoint.getBlobMap();
+        HashMap<String, String> curMap = curBranch.getBlobMap();
+        HashMap<String, String> givenMap = givenBranch.getBlobMap();
+        HashMap<String, String> mergeMap = mergeCommit.getBlobMap();
+        fileNames.addAll(spMap.keySet());
+        fileNames.addAll(curMap.keySet());
+        fileNames.addAll(givenMap.keySet());
+        for (String f : fileNames) {
+            // case 6
+            if (spMap.containsKey(f) && curMap.containsKey(f) && !givenMap.containsKey(f)) {
+                // conflict 2b
+                if (!spMap.get(f).equals(curMap.get(f))) {
+                    handleConflict(curMap, givenMap, mergeMap, f);
+                    continue;
+                } else {
+                    join(CWD, f).delete();
+                    continue;
+                }
+
+            }
+            // case 7
+            if (spMap.containsKey(f) && !curMap.containsKey(f) && givenMap.containsKey(f)) {
+                // conflict 2a
+                if (!spMap.get(f).equals(givenMap.get(f))) {
+                    handleConflict(curMap, givenMap, mergeMap, f);
+                    continue;
+                } else {
+                    continue;
+                }
+            }
+            // case 3b
+            if (spMap.containsKey(f) && !curMap.containsKey(f) && !givenMap.containsKey(f)) {
+                continue;
+            }
+
+            // case 4
+            if (!spMap.containsKey(f) && curMap.containsKey(f) && !givenMap.containsKey(f)) {
+                mergeMap.put(f, curMap.get(f));
+                continue;
+            }
+            // case 5
+            if (!spMap.containsKey(f) && !curMap.containsKey(f) && givenMap.containsKey(f)) {
+                checkout2(givenBranch.getHash(), f);
+                mergeMap.put(f, curMap.get(f));
+                continue;
+            }
+            // conflict 3
+            if  (!spMap.containsKey(f) && curMap.containsKey(f) && givenMap.containsKey(f)) {
+                if (!givenMap.get(f).equals(curMap.get(f))) {
+                    handleConflict(curMap, givenMap, mergeMap, f);
+                    continue;
+                } else {
+                    mergeMap.put(f, curMap.get(f));
+                    continue;
+                }
+            }
+            // case 1
+            if (!spMap.get(f).equals(givenMap.get(f)) && spMap.get(f).equals(curMap.get(f))) {
+                checkout2(givenBranch.getHash(), f);
+                mergeMap.put(f, curMap.get(f));
+                continue;
+            }
+            System.out.println(spMap);
+            System.out.println(givenMap);
+            System.out.println(curMap);
+            System.out.println(f);
+            // case 2
+            if (spMap.get(f).equals(givenMap.get(f)) && !spMap.get(f).equals(curMap.get(f))) {
+                mergeMap.put(f, curMap.get(f));
+                continue;
+            }
+            // case 3a
+            if (!spMap.get(f).equals(givenMap.get(f)) && !spMap.get(f).equals(curMap.get(f))
+                    && givenMap.get(f).equals(curMap.get(f))) {
+                mergeMap.put(f, curMap.get(f));
+                continue;
+            }
+            // conflict 1
+            if (!spMap.get(f).equals(givenMap.get(f)) && !spMap.get(f).equals(curMap.get(f))
+                    && !givenMap.get(f).equals(curMap.get(f))) {
+                handleConflict(curMap, givenMap, mergeMap, f);
+                continue;
+            }
+        }
+        stageArea.save();
+        mergeCommit.save();
+        Branch.setBranches(HEAD.getHead(), mergeCommit.getHash());
+    }
+
+
+    private Commit findSplitPoint() {
+        List<String> commitList = Commit.loadCommitList();
+        for (String uid : commitList) {
+            Commit commit = Commit.load(uid);
+            if (commit.getSpBranch() != null) {
+                return commit;
+            }
+        }
+        return null;
+    }
+
+    private void handleConflict(HashMap<String, String> curMap, HashMap<String, String> givenMap,
+                                HashMap<String, String> mergeMap, String f) {
+        System.out.println("Encountered a merge conflict.");
+        String curFile;
+        String givenFile;
+        if (curMap.get(f) != null && join(Blob.BLOBS, curMap.get(f)).exists()) {
+            curFile = readContentsAsString(join(Blob.BLOBS, curMap.get(f)));
+        } else {
+            curFile = "";
+        }
+        if (givenMap.get(f) != null && join(Blob.BLOBS, givenMap.get(f)).exists()) {
+            givenFile = readContentsAsString(join(Blob.BLOBS, givenMap.get(f)));
+        } else {
+            givenFile = "";
+        }
+        String content = "<<<<<<< HEAD\n" + curFile + "=======\n" + givenFile + ">>>>>>>";
+        writeContents(join(CWD, f), content);
+        Blob newBlob = new Blob(readContents(join(CWD, f)));
+        mergeMap.put(f, newBlob.getHash());
+        newBlob.save();
     }
 
     private void exitWithMessage(String message) {
