@@ -1,11 +1,8 @@
 package gitlet;
 import java.io.*;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
+import java.util.*;
 
-
-import java.util.Date;
-import java.util.Locale;
 
 import static gitlet.Utils.*;
 
@@ -77,7 +74,7 @@ public class Commit implements Serializable {
     }
 
     public void save() {
-        File folder = join(COMMITS, hash.substring(0, 6));
+        File folder = join(COMMITS, hash.substring(0, 8));
         folder.mkdir();
         writeObject(join(folder, hash), this);
     }
@@ -101,8 +98,7 @@ public class Commit implements Serializable {
     public static Commit load(String uid) {
         File folder = join(COMMITS, uid);
         if (uid.length() == 40) {
-            folder = join(COMMITS, uid.substring(0, 6));
-
+            folder = join(COMMITS, uid.substring(0, 8));
         }
         File target = join(folder, uid);
         if (target.exists()) {
@@ -124,5 +120,15 @@ public class Commit implements Serializable {
         System.out.println();
     }
 
-
+    public static List<String> loadCommitList() {
+        List<String> commitList = new LinkedList<>();
+        File[] commitFolder = COMMITS.listFiles();
+        if (commitFolder == null) {
+            return null;
+        }
+        for (File folder : commitFolder) {
+            commitList.addAll(plainFilenamesIn(folder));
+        }
+        return commitList;
+    }
 }

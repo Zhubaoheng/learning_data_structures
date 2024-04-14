@@ -37,7 +37,8 @@ public class Repository implements Serializable {
 
     public void init() {
         if (GITLET_DIR.exists()) {
-            exitWithMessage("Please enter a command.");
+            exitWithMessage("A Gitlet version-control system "
+                   + "already exists in the current directory.");
         }
         setupRepoFile();
 
@@ -59,6 +60,7 @@ public class Repository implements Serializable {
      *
      */
     public void add(String fileName) {
+        checkGitletDir();
         String itemHash;
         File fileForAdd = join(CWD, fileName);
         if (!fileForAdd.exists()) {
@@ -89,11 +91,12 @@ public class Repository implements Serializable {
     }
 
     public void commit(String message) {
+        checkGitletDir();
         StagingArea stageArea = StagingArea.load();
         if (stageArea.getRemoval().isEmpty() && stageArea.getAddition().isEmpty()) {
             exitWithMessage("No changes added to the commit.");
         }
-        if (message == null) {
+        if (message.isEmpty()) {
             exitWithMessage("Please enter a commit message.");
         }
         // if no merge
@@ -114,6 +117,7 @@ public class Repository implements Serializable {
 
     /**如果暂存区中存在这个文件，把它从暂存区中移除*/
     public void rm(String fileName) {
+        checkGitletDir();
         StagingArea stageArea = StagingArea.load();
         boolean changed = false;
         if (stageArea.getAddition().containsKey(fileName)) {
@@ -135,6 +139,7 @@ public class Repository implements Serializable {
     }
 
     public void log() {
+        checkGitletDir();
         getLog(Branch.getBranches(HEAD.getHead()));
     }
 
@@ -150,7 +155,8 @@ public class Repository implements Serializable {
     }
 
     public void globalLog() {
-        List<String> commitList = plainFilenamesIn(Commit.COMMITS);
+        checkGitletDir();
+        List<String> commitList = Commit.loadCommitList();
         if (commitList == null) {
             return;
         }
@@ -162,15 +168,16 @@ public class Repository implements Serializable {
     }
 
     public void find(String message) {
-        List<String> commitList = plainFilenamesIn(Commit.COMMITS);
+        checkGitletDir();
+        List<String> commitList = Commit.loadCommitList();
         boolean changed = false;
         if (commitList == null) {
             return;
         }
         for (String hash : commitList) {
-            Commit commit = readObject(join(Commit.COMMITS, hash), Commit.class);
+            Commit commit = Commit.load(hash);
             if (commit.getMessage().equals(message)) {
-                System.out.println(hash);
+                System.out.println(commit.getHash());
                 changed = true;
             }
         }
@@ -181,6 +188,7 @@ public class Repository implements Serializable {
 
 
     public void branch(String branchName) {
+        checkGitletDir();
         File newBranch = join(Branch.BRANCHES, branchName);
         if (newBranch.exists()) {
             exitWithMessage("A branch with that name already exists.");
@@ -189,6 +197,7 @@ public class Repository implements Serializable {
     }
 
     public void rmBranch(String branchName) {
+        checkGitletDir();
         if (HEAD.getHead().equals(branchName)) {
             exitWithMessage("Cannot remove the current branch.");
         }
@@ -200,6 +209,7 @@ public class Repository implements Serializable {
     }
 
     public void status() {
+        checkGitletDir();
         StagingArea stageArea = StagingArea.load();
         Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
         List<String> cwd = plainFilenamesIn(CWD);
@@ -330,7 +340,7 @@ public class Repository implements Serializable {
     }
 
     public void checkout2(String commitId, String fileName) {
-        //缩写要能处理
+        checkGitletDir();
         Commit commit = Commit.load(commitId);
         if (commit != null) {
             HashMap<String, String> commitMap = commit.getBlobMap();
@@ -345,6 +355,7 @@ public class Repository implements Serializable {
         }
     }
     public void checkout3(String branchName) {
+        checkGitletDir();
         List<String> branches = plainFilenamesIn(Branch.BRANCHES);
         if (!branches.contains(branchName)) {
             exitWithMessage("No such branch exists.");
@@ -393,6 +404,7 @@ public class Repository implements Serializable {
     }
 
     public void reset(String uid) {
+        checkGitletDir();
         Commit commit = Commit.load(uid);
         if (commit == null) {
             exitWithMessage("No commit with that id exists.");
@@ -420,7 +432,7 @@ public class Repository implements Serializable {
         return false;
     }
     public void merge(String branchName) {
-        
+        checkGitletDir();
     }
 
     private void exitWithMessage(String message) {
@@ -428,4 +440,24 @@ public class Repository implements Serializable {
         exit(0);
     }
 
+    private void checkGitletDir() {
+        if (!GITLET_DIR.exists()) {
+            exitWithMessage("Not in an initialized Gitlet directory.");
+        }
+    }
+
+    public static void checkOperands(String[] args,
+                                     int expectedNum) {
+        if (args.length - 1 > expectedNum) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            exit(0);
+        }
+
+        for (String arg : args) {
+            if (!(arg instanceof String)) {
+                System.out.println("Not in an initialized Gitlet directory.");
+                exit(0);
+            }
+        }
+    }
 }
