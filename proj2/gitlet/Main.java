@@ -84,11 +84,19 @@ public class Main {
                 }
 
                 if (args.length == 3) {
+                    if (!args[1].equals("--")) {
+                        System.out.println("Incorrect operands.");
+                        exit(0);
+                    }
                     repo.checkout1(args[2]);
                     exit(0);
                 }
 
                 if (args.length == 4) {
+                    if (!args[2].equals("--")) {
+                        System.out.println("Incorrect operands.");
+                        exit(0);
+                    }
                     repo.checkout2(args[1], args[3]);
                     exit(0);
                 }

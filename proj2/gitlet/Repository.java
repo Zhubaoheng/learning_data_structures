@@ -100,7 +100,8 @@ public class Repository implements Serializable {
             exitWithMessage("Please enter a commit message.");
         }
         // if no merge
-        Commit newCommit = new Commit(Branch.getBranches(HEAD.getHead()), null, message);
+        Commit newCommit = new Commit(Branch.getBranches(HEAD.getHead()),
+                null, message, HEAD.getHead());
         // 检查Staged for addition 和 Staged for removal
 
         newCommit.getBlobMap().putAll(stageArea.getAddition());
@@ -344,7 +345,7 @@ public class Repository implements Serializable {
         Commit commit = Commit.load(commitId);
         if (commit != null) {
             HashMap<String, String> commitMap = commit.getBlobMap();
-            if (!commitMap.containsKey("wug.txt")) {
+            if (!commitMap.containsKey(fileName)) {
                 exitWithMessage("File does not exist in that commit.");
             }
             String fileHash = commitMap.get(fileName);
@@ -409,7 +410,7 @@ public class Repository implements Serializable {
         if (commit == null) {
             exitWithMessage("No commit with that id exists.");
         }
-        if (!inCurBranch(uid)) {
+        if (!commit.getBranch().equals(HEAD.getHead())) {
             exitWithMessage("There is an untracked file in the way; "
                    + "delete it, or add and commit it first.");
         }
@@ -420,17 +421,6 @@ public class Repository implements Serializable {
         Branch.setBranches(HEAD.getHead(), uid);
     }
 
-    private boolean inCurBranch(String uid) {
-        Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
-        while (curCommit.getParent() != null) {
-            if (curCommit.getHash().equals(uid)) {
-                return true;
-            } else {
-                curCommit = Commit.load(curCommit.getParent());
-            }
-        }
-        return false;
-    }
     public void merge(String branchName) {
         checkGitletDir();
     }

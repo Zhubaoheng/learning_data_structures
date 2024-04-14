@@ -28,6 +28,7 @@ public class Commit implements Serializable {
     private final String parent;
     private final String mergeParent;
     private final Date timeStamp;
+    private final String branch;
     private final SimpleDateFormat dateFormat =
             new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
 
@@ -40,14 +41,15 @@ public class Commit implements Serializable {
         blobMap = new HashMap<>();
         hash = calcHash();
         message = "initial commit";
+        branch = "master";
     }
 
-    public Commit(String parent, String mergeParent, String message) {
+    public Commit(String parent, String mergeParent, String message, String branch) {
         this.mergeParent = mergeParent;
         this.parent = parent;
         timeStamp = new Date();
         this.message = message;
-
+        this.branch = branch;
         Commit parentCommit = load(parent);
         blobMap = new HashMap<>();
         assert parentCommit != null;
@@ -94,14 +96,13 @@ public class Commit implements Serializable {
     public String getMergeParent() {
         return mergeParent;
     }
-
+    public String getBranch() {
+        return branch;
+    }
     public static Commit load(String uid) {
-        File folder = join(COMMITS, uid);
-        if (uid.length() == 40) {
-            folder = join(COMMITS, uid.substring(0, 8));
-        }
-        File target = join(folder, uid);
-        if (target.exists()) {
+        File folder = join(COMMITS, uid.substring(0, 8));
+        if (folder.exists()) {
+            File target = folder.listFiles()[0];
             return readObject(target, Commit.class);
         } else {
             return null;
@@ -131,4 +132,6 @@ public class Commit implements Serializable {
         }
         return commitList;
     }
+
+
 }
