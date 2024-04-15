@@ -121,7 +121,6 @@ public class Repository implements Serializable {
         StagingArea stageArea = StagingArea.load();
         boolean changed = false;
         if (stageArea.getAddition().containsKey(fileName)) {
-            join(CWD, fileName).delete();
             stageArea.getAddition().remove(fileName);
             changed = true;
         }
@@ -586,7 +585,8 @@ public class Repository implements Serializable {
         } else {
             givenFile = "";
         }
-        String content = "<<<<<<< HEAD\n" + curFile + "=======\n" + givenFile + ">>>>>>>";
+        String content = "<<<<<<< HEAD\n" + curFile + "\n"
+                + "=======\n" + givenFile + "\n" + ">>>>>>>";
         writeContents(join(CWD, f), content);
         Blob newBlob = new Blob(readContents(join(CWD, f)));
         mergeMap.put(f, newBlob.getHash());
