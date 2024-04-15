@@ -576,17 +576,16 @@ public class Repository implements Serializable {
         String curFile;
         String givenFile;
         if (curMap.get(f) != null && join(Blob.BLOBS, curMap.get(f)).exists()) {
-            curFile = readContentsAsString(join(Blob.BLOBS, curMap.get(f)));
+            curFile = readContentsAsString(join(Blob.BLOBS, curMap.get(f))) + "\n";
         } else {
             curFile = "";
         }
         if (givenMap.get(f) != null && join(Blob.BLOBS, givenMap.get(f)).exists()) {
-            givenFile = readContentsAsString(join(Blob.BLOBS, givenMap.get(f)));
+            givenFile = readContentsAsString(join(Blob.BLOBS, givenMap.get(f))) + "\n";
         } else {
             givenFile = "";
         }
-        String content = "<<<<<<< HEAD\n" + curFile + "\n"
-                + "=======\n" + givenFile + "\n" + ">>>>>>>";
+        String content = "<<<<<<< HEAD\n" + curFile + "=======\n" + givenFile +  ">>>>>>>";
         writeContents(join(CWD, f), content);
         Blob newBlob = new Blob(readContents(join(CWD, f)));
         mergeMap.put(f, newBlob.getHash());
