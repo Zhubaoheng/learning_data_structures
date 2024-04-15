@@ -121,6 +121,7 @@ public class Repository implements Serializable {
         StagingArea stageArea = StagingArea.load();
         boolean changed = false;
         if (stageArea.getAddition().containsKey(fileName)) {
+            join(CWD, fileName).delete();
             stageArea.getAddition().remove(fileName);
             changed = true;
         }
@@ -475,6 +476,14 @@ public class Repository implements Serializable {
         fileNames.addAll(spMap.keySet());
         fileNames.addAll(curMap.keySet());
         fileNames.addAll(givenMap.keySet());
+        mergeCore(fileNames, spMap, curMap, givenMap, mergeMap, givenBranch);
+        mergeCommit.save();
+        Branch.setBranches(HEAD.getHead(), mergeCommit.getHash());
+    }
+
+    private void mergeCore(Set<String> fileNames, HashMap<String, String> spMap,
+                           HashMap<String, String> curMap, HashMap<String, String> givenMap,
+                           HashMap<String, String> mergeMap, Commit givenBranch) {
         for (String f : fileNames) {
             // case 6
             if (spMap.containsKey(f) && curMap.containsKey(f) && !givenMap.containsKey(f)) {
@@ -548,8 +557,6 @@ public class Repository implements Serializable {
                 continue;
             }
         }
-        mergeCommit.save();
-        Branch.setBranches(HEAD.getHead(), mergeCommit.getHash());
     }
 
 
