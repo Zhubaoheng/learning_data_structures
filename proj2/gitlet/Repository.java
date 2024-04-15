@@ -103,7 +103,6 @@ public class Repository implements Serializable {
         Commit newCommit = new Commit(Branch.getBranches(HEAD.getHead()),
                 null, message, HEAD.getHead());
         // 检查Staged for addition 和 Staged for removal
-
         newCommit.getBlobMap().putAll(stageArea.getAddition());
         for (String key : stageArea.getRemoval()) {
             newCommit.getBlobMap().remove(key);
@@ -271,7 +270,6 @@ public class Repository implements Serializable {
         TreeSet<String> deleted = new TreeSet<>();
         HashSet<String> removal = stageArea.getRemoval();
         HashMap<String, String> addition = stageArea.getAddition();
-
         for (String fileName : addition.keySet()) {
             if (!cwd.contains(fileName)) {
                 deleted.add(fileName);
@@ -317,7 +315,8 @@ public class Repository implements Serializable {
         System.out.println();
     }
 
-    private TreeSet<String> findUntrackedFiles(StagingArea stageArea, Commit curCommit, List<String> cwd) {
+    private TreeSet<String> findUntrackedFiles(StagingArea stageArea,
+                                               Commit curCommit, List<String> cwd) {
         HashMap<String, String> blobMap = curCommit.getBlobMap();
         HashSet<String> removal = stageArea.getRemoval();
         HashMap<String, String> addition = stageArea.getAddition();
@@ -425,15 +424,12 @@ public class Repository implements Serializable {
         resetFile(uid);
         Branch.setBranches(HEAD.getHead(), uid);
     }
-
-    public void merge(String branchName) {
-        checkGitletDir();
+    private void checkMergeError(String branchName) {
+        List<String> branches = plainFilenamesIn(Branch.BRANCHES);
+        StagingArea stageArea = StagingArea.load();
         Commit curBranch = Commit.load(Branch.getBranches(HEAD.getHead()));
         List<String> cwd = plainFilenamesIn(CWD);
-        StagingArea stageArea = StagingArea.load();
         TreeSet<String> untrackedFile = findUntrackedFiles(stageArea, curBranch, cwd);
-        List<String> branches = plainFilenamesIn(Branch.BRANCHES);
-        Set<String> fileNames = new TreeSet<>();
         if (!branches.contains(branchName)) {
             exitWithMessage("A branch with that name does not exist. ");
         }
@@ -445,7 +441,7 @@ public class Repository implements Serializable {
         }
         if (!untrackedFile.isEmpty()) {
             exitWithMessage("There is an untracked file in the way;"
-                   + " delete it, or add and commit it first.");
+                    + " delete it, or add and commit it first.");
         }
         // find the split point
 
@@ -459,6 +455,16 @@ public class Repository implements Serializable {
             checkout3(branchName);
             exitWithMessage("Current branch fast-forwarded.");
         }
+    }
+
+    public void merge(String branchName) {
+        checkGitletDir();
+        checkMergeError(branchName);
+        Commit curBranch = Commit.load(Branch.getBranches(HEAD.getHead()));
+        Set<String> fileNames = new TreeSet<>();
+        // find the split point
+        Commit spPoint = findSplitPoint();
+        Commit givenBranch = Commit.load(Branch.getBranches(branchName));
         Commit mergeCommit = new Commit(Branch.getBranches(HEAD.getHead()),
                 givenBranch.getHash(), "Merged " + branchName + " into "
                 + HEAD.getHead() + ".", HEAD.getHead());
@@ -478,9 +484,9 @@ public class Repository implements Serializable {
                     continue;
                 } else {
                     join(CWD, f).delete();
+                    mergeMap.remove(f);
                     continue;
                 }
-
             }
             // case 7
             if (spMap.containsKey(f) && !curMap.containsKey(f) && givenMap.containsKey(f)) {
@@ -524,10 +530,6 @@ public class Repository implements Serializable {
                 mergeMap.put(f, curMap.get(f));
                 continue;
             }
-            System.out.println(spMap);
-            System.out.println(givenMap);
-            System.out.println(curMap);
-            System.out.println(f);
             // case 2
             if (spMap.get(f).equals(givenMap.get(f)) && !spMap.get(f).equals(curMap.get(f))) {
                 mergeMap.put(f, curMap.get(f));
@@ -546,7 +548,6 @@ public class Repository implements Serializable {
                 continue;
             }
         }
-        stageArea.save();
         mergeCommit.save();
         Branch.setBranches(HEAD.getHead(), mergeCommit.getHash());
     }
