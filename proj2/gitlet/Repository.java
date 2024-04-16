@@ -479,7 +479,7 @@ public class Repository implements Serializable {
                 containsAll(map.getCBMap().get(spPoint.getHash()))) {
             exitWithMessage("Given branch is an ancestor of the current branch.");
         }
-            }
+    }
 
     public void merge(String branchName) {
         checkGitletDir();
