@@ -5,6 +5,7 @@ import java.util.*;
 
 
 import static gitlet.Utils.*;
+import static java.lang.System.exit;
 
 /** Represents a gitlet commit object.
  *  does at a high level.
@@ -28,13 +29,12 @@ public class Commit implements Serializable {
     private final String parent;
     private final String mergeParent;
     private final Date timeStamp;
-    private final String branch;
-    private String spBranch;
     private final SimpleDateFormat dateFormat =
             new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
 
     private HashMap<String, String> blobMap;
-    private String hash;
+    private HashSet<String> branch;
+    private final String hash;
     public Commit() {
         mergeParent = null;
         parent = null;
@@ -42,20 +42,14 @@ public class Commit implements Serializable {
         blobMap = new HashMap<>();
         hash = calcHash();
         message = "initial commit";
-        branch = "master";
-        spBranch = null;
     }
-
-    public Commit(String parent, String mergeParent, String message, String branch) {
+    public Commit(String parent, String mergeParent, String message) {
         this.mergeParent = mergeParent;
         this.parent = parent;
         this.message = message;
-        this.branch = branch;
-        spBranch = null;
         timeStamp = new Date();
         Commit parentCommit = load(parent);
         blobMap = new HashMap<>();
-        assert parentCommit != null;
         blobMap = parentCommit.blobMap;
         hash = calcHash();
     }
@@ -99,12 +93,6 @@ public class Commit implements Serializable {
     public String getMergeParent() {
         return mergeParent;
     }
-    public String getBranch() {
-        return branch;
-    }
-    public String getSpBranch() {
-        return spBranch;
-    }
     public static Commit load(String uid) {
         File folder = join(COMMITS, uid.substring(0, 8));
         if (folder.exists()) {
@@ -138,9 +126,4 @@ public class Commit implements Serializable {
         }
         return commitList;
     }
-
-    public void setSpBranch(String branchName) {
-        this.spBranch = branchName;
-    }
-
 }

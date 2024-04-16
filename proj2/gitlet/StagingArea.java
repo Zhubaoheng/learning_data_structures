@@ -32,8 +32,7 @@ public class StagingArea implements Serializable {
         return readObject(STAGE_FILE, StagingArea.class);
     }
 
-
-    public  void clear() {
+    public void clear() {
         addition.clear();
         removal.clear();
     }

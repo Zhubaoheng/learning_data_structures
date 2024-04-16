@@ -44,6 +44,8 @@ public class Repository implements Serializable {
 
         Commit initCommit = new Commit();
         initCommit.save();
+        commitBranchMap map = new commitBranchMap();
+        map.updateBranch(initCommit.getHash(), "master");
         Branch.setBranches("master", initCommit.getHash());
         HEAD.setHead("master");
         StagingArea initStagingArea = new StagingArea();
@@ -93,6 +95,7 @@ public class Repository implements Serializable {
     public void commit(String message) {
         checkGitletDir();
         StagingArea stageArea = StagingArea.load();
+        commitBranchMap map = commitBranchMap.load();
         if (stageArea.getRemoval().isEmpty() && stageArea.getAddition().isEmpty()) {
             exitWithMessage("No changes added to the commit.");
         }
@@ -101,8 +104,9 @@ public class Repository implements Serializable {
         }
         // if no merge
         Commit newCommit = new Commit(Branch.getBranches(HEAD.getHead()),
-                null, message, HEAD.getHead());
+                null, message);
         // 检查Staged for addition 和 Staged for removal
+        map.updateBranch(newCommit.getHash(), HEAD.getHead());
         newCommit.getBlobMap().putAll(stageArea.getAddition());
         for (String key : stageArea.getRemoval()) {
             newCommit.getBlobMap().remove(key);
@@ -111,7 +115,6 @@ public class Repository implements Serializable {
         newCommit.save();
         stageArea.save();
         Branch.setBranches(HEAD.getHead(), newCommit.getHash());
-        //有merge情况未考虑
     }
 
 
@@ -156,6 +159,8 @@ public class Repository implements Serializable {
 
     public void globalLog() {
         checkGitletDir();
+        commitBranchMap map = commitBranchMap.load();
+        System.out.println(map.getCBMap());
         List<String> commitList = Commit.loadCommitList();
         if (commitList == null) {
             return;
@@ -195,7 +200,8 @@ public class Repository implements Serializable {
         }
         Branch.setBranches(branchName, Branch.getBranches(HEAD.getHead()));
         Commit curCommit = Commit.load(Branch.getBranches(HEAD.getHead()));
-        curCommit.setSpBranch(branchName);
+        commitBranchMap map = commitBranchMap.load();
+        map.updateAll(branchName);
         curCommit.save();
     }
 
@@ -414,9 +420,11 @@ public class Repository implements Serializable {
         if (commit == null) {
             exitWithMessage("No commit with that id exists.");
         }
-        if (!commit.getBranch().equals(HEAD.getHead())) {
-            exitWithMessage("There is an untracked file in the way; "
-                   + "delete it, or add and commit it first.");
+        for (String branch : plainFilenamesIn(Branch.BRANCHES)) {
+            if (!branch.equals(HEAD.getHead())) {
+                exitWithMessage("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
+            }
         }
         StagingArea stageArea = StagingArea.load();
         stageArea.clear();
@@ -445,7 +453,7 @@ public class Repository implements Serializable {
         }
         // find the split point
 
-        Commit spPoint = findSplitPoint();
+        Commit spPoint = findSplitPoint(HEAD.getHead(), branchName);
         Commit givenBranch = Commit.load(Branch.getBranches(branchName));
 
         if (spPoint.getHash().equals(givenBranch.getHash())) {
@@ -463,11 +471,22 @@ public class Repository implements Serializable {
         Commit curBranch = Commit.load(Branch.getBranches(HEAD.getHead()));
         Set<String> fileNames = new TreeSet<>();
         // find the split point
-        Commit spPoint = findSplitPoint();
+        Commit spPoint = findSplitPoint(HEAD.getHead(), branchName);
         Commit givenBranch = Commit.load(Branch.getBranches(branchName));
+        /**
+        if (branchName.equals("B2")) {
+            System.out.println(spPoint.getMessage());
+            System.out.println(curBranch.getMessage());
+            System.out.println(givenBranch.getMessage());
+        }*/
         Commit mergeCommit = new Commit(Branch.getBranches(HEAD.getHead()),
                 givenBranch.getHash(), "Merged " + branchName + " into "
-                + HEAD.getHead() + ".", HEAD.getHead());
+                + HEAD.getHead() + ".");
+        commitBranchMap map = commitBranchMap.load();
+        map.updateBranch(mergeCommit.getHash(), branchName);
+        for (String branch : map.getCBMap().get(curBranch.getHash())) {
+            map.updateBranch(mergeCommit.getHash(), branch);
+        }
         HashMap<String, String> spMap = spPoint.getBlobMap();
         HashMap<String, String> curMap = curBranch.getBlobMap();
         HashMap<String, String> givenMap = givenBranch.getBlobMap();
@@ -519,7 +538,7 @@ public class Repository implements Serializable {
             // case 5
             if (!spMap.containsKey(f) && !curMap.containsKey(f) && givenMap.containsKey(f)) {
                 checkout2(givenBranch.getHash(), f);
-                mergeMap.put(f, curMap.get(f));
+                mergeMap.put(f, givenMap.get(f));
                 continue;
             }
             // conflict 3
@@ -559,12 +578,30 @@ public class Repository implements Serializable {
     }
 
 
-    private Commit findSplitPoint() {
-        List<String> commitList = Commit.loadCommitList();
-        for (String uid : commitList) {
-            Commit commit = Commit.load(uid);
-            if (commit.getSpBranch() != null) {
-                return commit;
+    private Commit findSplitPoint(String curBranch, String givenBranch) {
+        commitBranchMap map = commitBranchMap.load();
+        HashMap<String, Set<String>> cbMap = map.getCBMap();
+        Commit curCommit = Commit.load(Branch.getBranches(curBranch));
+        Commit givenCommit = Commit.load(Branch.getBranches(givenBranch));
+        while (givenCommit.getParent() != null) {
+            givenCommit = Commit.load(givenCommit.getParent());
+            Set<String> givenSet = cbMap.get(givenCommit.getHash());
+            Set<String> curSet = cbMap.get(curCommit.getHash());
+            for (String branch : curSet) {
+                if (givenSet.contains(branch)) {
+                    return givenCommit;
+                }
+            }
+
+        }
+        if (givenCommit.getParent() == null) {
+            givenCommit = Commit.load(givenCommit.getParent());
+            Set<String> givenSet = cbMap.get(givenCommit.getHash());
+            Set<String> curSet = cbMap.get(curCommit.getHash());
+            for (String branch : curSet) {
+                if (givenSet.contains(branch)) {
+                    return givenCommit;
+                }
             }
         }
         return null;
@@ -576,16 +613,16 @@ public class Repository implements Serializable {
         String curFile;
         String givenFile;
         if (curMap.get(f) != null && join(Blob.BLOBS, curMap.get(f)).exists()) {
-            curFile = readContentsAsString(join(Blob.BLOBS, curMap.get(f))) + "\n";
+            curFile = readContentsAsString(join(Blob.BLOBS, curMap.get(f)));
         } else {
             curFile = "";
         }
         if (givenMap.get(f) != null && join(Blob.BLOBS, givenMap.get(f)).exists()) {
-            givenFile = readContentsAsString(join(Blob.BLOBS, givenMap.get(f))) + "\n";
+            givenFile = readContentsAsString(join(Blob.BLOBS, givenMap.get(f)));
         } else {
             givenFile = "";
         }
-        String content = "<<<<<<< HEAD\n" + curFile + "=======\n" + givenFile +  ">>>>>>>";
+        String content = "<<<<<<< HEAD\n" + curFile + "=======\n" + givenFile +  ">>>>>>>\n";
         writeContents(join(CWD, f), content);
         Blob newBlob = new Blob(readContents(join(CWD, f)));
         mergeMap.put(f, newBlob.getHash());
