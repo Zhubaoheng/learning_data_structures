@@ -6,10 +6,10 @@ import java.util.*;
 
 import static gitlet.Utils.*;
 
-public class commitBranchMap implements Serializable {
+public class CommitBranchMap implements Serializable {
     public static final File MAP = join(Repository.GITLET_DIR, "commitBranchMap");
     private HashMap<String, Set<String>> map;
-    public commitBranchMap() {
+    public CommitBranchMap() {
         map = new HashMap<>();
     }
 
@@ -40,7 +40,7 @@ public class commitBranchMap implements Serializable {
         writeObject(MAP, this);
     }
 
-    public static commitBranchMap load() {
-        return readObject(MAP, commitBranchMap.class);
+    public static CommitBranchMap load() {
+        return readObject(MAP, CommitBranchMap.class);
     }
 }

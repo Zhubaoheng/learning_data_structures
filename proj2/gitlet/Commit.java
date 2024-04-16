@@ -5,7 +5,6 @@ import java.util.*;
 
 
 import static gitlet.Utils.*;
-import static java.lang.System.exit;
 
 /** Represents a gitlet commit object.
  *  does at a high level.
